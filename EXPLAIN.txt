@@ -1,0 +1,445 @@
+MONEYMIND - FULL CODE EXPLANATION
+B.Tech BCPC C Project
+================================
+
+This guide explains the MoneyMind program in simple language. Keep this file in the same folder as moneymind.c. The code uses standard C and GCC.
+
+1. WHAT THE PROGRAM DOES
+------------------------
+MoneyMind is a terminal-based personal finance tracker. It can:
+- Add income and expense records.
+- Display all saved transactions.
+- Search a transaction by ID.
+- Change a transaction's amount.
+- Delete a transaction.
+- Calculate total income, expenses and balance.
+- Show expense totals by category.
+- Save and check a budget.
+- Sort transactions by amount.
+- Export transactions to CSV for Excel.
+- Import transaction rows from a CSV saved by Excel.
+
+The program stores transaction records in transactions.txt and the budget in budget.txt.
+The exported spreadsheet file is transactions.csv.
+
+2. IMPORTANT FILES
+------------------
+moneymind.c
+The C source code. This is the file you edit.
+
+moneymind.exe
+The executable file created by GCC after compiling the source.
+
+transactions.txt
+Permanent transaction storage. Each transaction is saved on one line in this format:
+ID|type|date|category|note|amount
+Example:
+1|income|2026-10-17|Shop|NA|10000.00
+
+The vertical bar | separates fields in the text file. Do not type this symbol inside category or note.
+
+budget.txt
+Stores the budget as a number, such as:
+20000.00
+
+transactions.csv
+A comma-separated file created when you choose Export CSV. Excel can open it.
+
+mydata.csv
+An example name for a CSV file saved from Excel and imported into MoneyMind.
+
+IMPORTANT:
+CSV is not the same as a native Excel .xlsx workbook. Excel can open CSV files, and you can save them as .xlsx from Excel. This program reads CSV, not .xlsx directly.
+
+3. HOW TO COMPILE AND RUN
+-------------------------
+Open PowerShell in the folder containing moneymind.c.
+
+Compile:
+gcc -std=c11 -Wall -Wextra moneymind.c -o moneymind.exe
+
+Run:
+.\moneymind.exe
+
+Meaning of the compile command:
+gcc
+The C compiler.
+
+-std=c11
+Use the C11 version of the C language.
+
+-Wall
+Show many common compiler warnings.
+
+-Wextra
+Show additional warnings.
+
+moneymind.c
+The source file to compile.
+
+-o moneymind.exe
+Name the program file that GCC creates. The -o option means output.
+
+4. C LANGUAGE WORDS AND SYMBOLS
+-------------------------------
+#include <stdio.h>
+Includes standard input/output functions such as printf, scanf, fopen, fclose, fprintf and fscanf.
+
+#include <stdlib.h>
+Includes memory functions such as malloc, realloc and free, plus other utility functions.
+
+#include <string.h>
+Includes string functions such as strcmp, strcpy and strlen.
+
+#define DATA_FILE "transactions.txt"
+Defines a name DATA_FILE that is replaced by the text "transactions.txt" by the preprocessor. This avoids repeating the filename in many places.
+
+typedef struct { ... } Transaction;
+struct groups multiple related values into one record. typedef allows us to use the shorter type name Transaction.
+
+int
+An integer return type. Functions returning int can return whole numbers.
+
+void
+Means a function does not return a value.
+
+char
+Stores a character. A char array is commonly used to store a text string.
+
+double
+Stores a floating-point number with more precision than float. It is used for amounts in this project. For real financial software, integer paise or a decimal library is safer for exact currency arithmetic.
+
+Transaction *items
+A pointer to a Transaction. It holds the memory address of a transaction array.
+
+&variable
+The address-of operator. For example, &items passes the address of the pointer to loadData so that function can set it.
+
+*items
+Depending on context, this can mean the value at a pointer address or a pointer declaration. In Transaction *items, the star means items is a pointer.
+
+NULL
+A special pointer value meaning “no valid address”.
+
+return
+Ends a function and optionally sends a value back to the caller.
+
+if / else
+Choose which code runs depending on a condition.
+
+for
+Repeats a block of code a known or controlled number of times.
+
+while
+Repeats as long as a condition is true.
+
+do ... while
+Runs the menu at least once, then repeats until the user chooses Exit.
+
+switch / case
+Chooses which menu action to run based on the entered option.
+
+break
+Leaves the current switch case or loop.
+
+continue
+Skips the rest of the current loop iteration and moves to the next iteration.
+
+sizeof(Transaction)
+Returns the number of bytes used by one Transaction structure. It is used to calculate memory needed for arrays.
+
+'\0'
+The null character that marks the end of a C string.
+
+'\n'
+The newline character.
+
+"some text"
+A string literal: a sequence of characters ending internally with '\0'.
+
+%d
+printf/scanf format code for int.
+
+%lf
+For scanf, reads a double. For printf, %f is normally used to print a double.
+
+%s
+Reads or prints a string. With scanf, a width such as %29s limits how many characters are read.
+
+%c
+Format code for one character.
+
+%02d
+Print an integer using at least two digits, adding a leading zero if needed.
+
+%04d
+Print an integer using at least four digits, adding leading zeros if needed.
+
+%.2f
+Print a number with two digits after the decimal point.
+
+%-10s
+Print a string in a field at least 10 characters wide, left-aligned.
+
+5. THE TRANSACTION STRUCTURE
+---------------------------
+typedef struct {
+    int id;
+    char type[12];
+    char date[11];
+    char category[30];
+    char note[80];
+    double amount;
+} Transaction;
+
+id
+A unique number used to identify a transaction.
+
+type
+Stores income or expense. The array has space for up to 11 visible characters plus the string-ending '\0'.
+
+date
+Stores a date such as 2026-10-17. 10 visible characters plus '\0' require 11 spaces.
+
+category
+Stores a category such as Food, Travel, Salary or Games.
+
+note
+Stores a short explanation such as Lunch or Metro.
+
+amount
+Stores the transaction value.
+
+Arrays like char category[30] have a fixed maximum capacity. In this project, category and note are entered as one word when adding transactions. In CSV, commas inside category or note are not supported by this simple importer.
+
+6. FUNCTION-BY-FUNCTION EXPLANATION
+-----------------------------------
+
+main()
+The program starts here. It displays the menu, reads the user's choice, and uses switch to call the chosen function. The do-while loop repeats the menu until choice 0 is entered.
+
+clearInput()
+Reads and discards leftover characters until a newline or end-of-file is reached. This is used after invalid numeric input so that the same bad characters do not affect the next input.
+
+normalizeType(char type[])
+Converts uppercase English letters in a transaction type to lowercase. For example, "Income" becomes "income" and "EXPENSE" becomes "expense". This allows Excel values with different capitalization to be accepted.
+
+normalizeDate(char date[])
+Accepts either YYYY-MM-DD or DD-MM-YYYY and converts it to YYYY-MM-DD.
+For example:
+17-10-2026 becomes 2026-10-17.
+It checks the rough ranges for year, month and day. It does not check every calendar detail, such as whether February has 28 or 29 days.
+
+loadData(Transaction **items)
+Opens transactions.txt for reading. It reads each saved line and places it into a dynamically allocated array of Transaction structures.
+Transaction **items is a pointer to a pointer. It lets the function return the address of the allocated array through the parameter.
+fopen(..., "r") opens a file for reading.
+fscanf reads formatted data.
+realloc grows the array when more memory is needed.
+fclose closes the file.
+The function returns the number of transactions loaded. If the file does not exist, it returns zero.
+
+saveData(Transaction *items, int count)
+Opens transactions.txt in write mode and writes all transactions to it.
+"w" creates a file or clears an existing file before writing.
+fprintf writes formatted text.
+The vertical bar separates each field.
+fclose closes the file so data is flushed and the file handle is released.
+This function rewrites the file with the current array. It is called after adding, editing, deleting or importing.
+
+addTransaction()
+Loads current records, asks for the type, date, category, note and amount, validates the type/date/amount, chooses a new ID, adds the record to a resized array and saves it.
+The ID is one more than the largest existing ID.
+realloc requests memory for one additional Transaction.
+free releases allocated memory when the function finishes.
+
+listTransactions()
+Loads saved records and prints each transaction in columns. The for loop visits each record. If there are no records, it prints a message. It then releases the memory using free.
+
+searchTransaction()
+Asks for an ID and checks each loaded transaction. If an ID matches, it displays the record and stops searching. If no ID matches, it displays “Transaction not found.”
+
+editTransaction()
+Asks for a transaction ID. When found, it asks for a new amount, checks that it is positive, updates the amount in memory and saves all records. This version edits the amount only, not the date/category/note.
+
+deleteTransaction()
+Finds a transaction by ID. It shifts the records after it one position to the left, then saves all records except the deleted one.
+
+summary()
+Adds all income amounts together and all expense amounts together. Balance is calculated as:
+Balance = Total Income - Total Expenses
+
+categoryReport()
+Processes expense records and calculates total expense for each category. It avoids printing the same category more than once by checking earlier records.
+
+setBudget()
+Asks for a budget amount and writes it to budget.txt. It opens the file with "w", so the previous budget is replaced.
+
+checkBudget()
+Reads the saved budget, totals all expenses, and displays the budget, total expenses and remaining amount. It prints a warning if total expenses exceed the budget.
+NOTE: This basic version totals all saved expenses, not only the current month. The budget is stored as one overall budget value.
+
+sortByAmount()
+Uses bubble sort to order transactions from lowest amount to highest amount. It swaps two adjacent records when they are in the wrong order. It displays the sorted results but does not change the order in transactions.txt.
+
+exportCSV()
+Creates transactions.csv. The first line is the heading row. It writes each transaction using commas between columns, so Excel can open the file.
+
+importCSV()
+Asks for a CSV filename or path, opens it, skips the first line as a header, then reads the remaining lines.
+It expects six columns in this order:
+ID,Type,Date,Category,Note,Amount
+It accepts Income/income and Expense/expense, accepts either supported date order, checks the amount is positive, and skips rows that do not match the expected format.
+If an imported ID already exists, it assigns a new ID to avoid that collision.
+Imported rows are appended to the existing transaction list and then saved to transactions.txt.
+This simple importer does not correctly parse all CSV rules such as quoted commas inside a cell. Keep commas out of Category and Note.
+The importer reports Imported and Skipped counts. If Imported is zero, inspect the CSV file and make sure it has the correct six columns.
+
+7. FILE HANDLING WORDS
+----------------------
+FILE *fp
+A file pointer used by C to work with an open file.
+
+fopen(filename, mode)
+Opens a file. Common modes:
+"r" = read an existing file.
+"w" = write, creating a new file or replacing existing contents.
+"a" = append to the end of a file.
+"r+" = read and write an existing file.
+
+fclose(fp)
+Closes the open file.
+
+fprintf(fp, ...)
+Writes formatted text to a file.
+
+fscanf(fp, ...)
+Reads formatted text from a file.
+
+fgets(buffer, size, fp)
+Reads a line of text from a file, up to the buffer size.
+
+EOF
+A special value that indicates the end of a file or input stream.
+
+8. POINTERS AND DYNAMIC MEMORY
+-----------------------------
+malloc(size)
+Requests a block of memory of the specified number of bytes.
+
+realloc(pointer, newSize)
+Changes the size of a previously allocated memory block. It can move the block to a new address, so the returned pointer must be checked.
+
+free(pointer)
+Releases dynamically allocated memory when it is no longer needed.
+
+Transaction *items
+Points to the first transaction in a dynamic array.
+
+Transaction **items
+Allows loadData to change the caller's pointer to the allocated array.
+
+Why use dynamic memory?
+The program can hold as many transaction records as memory allows instead of using a fixed-size array.
+
+9. CSV FILE FORMAT FOR EXCEL
+----------------------------
+Save the Excel sheet as CSV UTF-8 (Comma delimited). The columns must be in this order:
+
+ID,Type,Date,Category,Note,Amount
+1,Income,17-10-2026,Shop,NA,10000
+2,Expense,17-10-2026,Games,NA,6580
+
+Accepted types:
+Income
+income
+EXPENSE
+Expense
+The code converts the type to lowercase.
+
+Accepted date examples:
+17-10-2026
+2026-10-17
+
+Amounts should be positive numbers without currency symbols, such as 10000 or 6580.50.
+Avoid commas inside Category and Note. Do not import a native .xlsx file directly; save it as CSV first.
+
+10. SAMPLE FINANCIAL SUMMARY
+----------------------------
+Income: 10000.00
+Expenses: 6580.00
+Balance: 3420.00
+
+Balance = 10000 - 6580 = 3420.
+
+11. COMMON ERRORS AND SOLUTIONS
+------------------------------
+“moneymind.c: No such file or directory”
+The terminal is in the wrong folder. Open the folder containing moneymind.c or use cd to move into it.
+
+“Cannot open file: mydata.csv”
+The CSV is not in the program's current working folder or the filename/path is incorrect. Put it beside the executable or enter the full path.
+
+“Imported: 0”
+Check the column order, the six columns, date format, type value and amount. Save from Excel as CSV UTF-8. Keep commas out of Category and Note.
+
+Compiler warnings
+Read the warning line and check the corresponding code. The compile command uses -Wall -Wextra to help detect possible problems.
+
+Duplicate transactions
+Importing appends rows. Importing the same CSV again can add duplicates. Back up transactions.txt and avoid re-importing the same file.
+
+12. VIVA QUESTIONS AND ANSWERS
+------------------------------
+Q: What is the purpose of MoneyMind?
+A: It manages income, expenses, budgets and transaction records using C.
+
+Q: Why did you use a structure?
+A: A structure groups transaction fields such as ID, date, category and amount.
+
+Q: Why use typedef?
+A: It lets the program use Transaction as a shorter name for the structure type.
+
+Q: What is a pointer?
+A: A pointer stores the memory address of another object.
+
+Q: Why use dynamic memory?
+A: The number of transactions can change while the program runs.
+
+Q: What is realloc?
+A: It resizes a previously allocated memory block.
+
+Q: Why use files?
+A: File storage keeps records after the program is closed.
+
+Q: What is the difference between "r" and "w" in fopen?
+A: "r" opens a file for reading; "w" opens it for writing and replaces existing content.
+
+Q: What does CSV mean?
+A: Comma-Separated Values. It is a text format that spreadsheet programs such as Excel can open.
+
+Q: Does the program directly read .xlsx?
+A: No. It imports CSV. The user must save the Excel workbook as CSV first.
+
+Q: What is bubble sort?
+A: A sorting method that compares adjacent values and swaps them when they are in the wrong order.
+
+Q: What is the balance formula?
+A: Total income minus total expenses.
+
+Q: What are the current limitations?
+A: The simple CSV parser does not support commas inside quoted cells, the date check is basic, and the budget check totals all stored expenses rather than filtering by month.
+
+13. QUICK CHECKLIST BEFORE DEMONSTRATION
+----------------------------------------
+[ ] Compile with GCC.
+[ ] Add one income and one expense.
+[ ] View transactions.
+[ ] Show financial summary.
+[ ] Set and check a budget.
+[ ] Export CSV and open it in Excel.
+[ ] Save an Excel sheet as CSV and import it.
+[ ] Explain Transaction structure, pointers, dynamic memory and file functions.
+[ ] Back up transactions.txt before testing import repeatedly.
+
+End of guide.
